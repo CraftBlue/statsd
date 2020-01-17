@@ -61,6 +61,11 @@ class Client
     protected $timeout;
 
     /**
+     * The special formatting of tags as they're dependent on the underlying receiver.
+     */
+    protected $tagFormat;
+
+    /**
      * Whether or not an exception should be thrown on failed connections
      * @var bool
      */
@@ -154,6 +159,13 @@ class Client
 
         if (isset($options['tags'])) {
             $this->tags = $options['tags'];
+        }
+
+        if (isset($options['tagFormat'])) {
+            if (!in_array($options['tagFormat'], [])) {
+                throw new ConfigurationException($this, 'Invalid tag format specified. Must be one of: graphite, telegraf, influxdb, datadog, signalfx');
+            }
+            $this->tagFormat = $options['tagFormat'];
         }
 
         return $this;
@@ -384,11 +396,54 @@ class Client
         if (!is_array($tags) || count($tags) === 0) {
             return '';
         }
+
         $data = array();
-        foreach ($tags as $tagKey => $tagValue) {
-            $data[] = isset($tagValue) ? $tagKey . ':' . $tagValue : $tagKey;
+
+        switch ($this->tagFormat) {
+            // semi-colon separator and tags split on equal sign
+            // disk.used;datacenter=dc1;rack=a1;server=web01
+            case 'graphite':
+                foreach ($tags as $tagKey => $tagValue) {
+                    $data[] = isset($tagValue) ? $tagKey . '=' . $tagValue : $tagKey;
+                }
+                return ';' . implode(';', $data);
+                break;
+
+            // origin.metric,sometag1=somevalue1,host=my-hostname,sometag2=somevalue2:666|g
+            // foo.bar.test2,tag1=val1:+1|g
+            case 'influxdb':
+            case 'telegraf':
+                foreach ($tags as $tagKey => $tagValue) {
+                    $data[] = isset($tagValue) ? $tagKey . '=' . $tagValue : $tagKey;
+                }
+                return ',' . implode(',', $data);
+                break;
+
+            // uses dimensions: [foo=bar,dim=val]
+            // statsd.[foo=bar,dim=val]test:1|g"
+            case 'signalfx':
+                foreach ($tags as $tagKey => $tagValue) {
+                    $data[] = isset($tagValue) ? $tagKey . '=' . $tagValue : $tagKey;
+                }
+                return '.[' . implode(',', $data) . ']';
+                break;
+
+            // origin.metric:666|g|#sometag1:somevalue1,host:my-hostname,sometag2:somevalue2
+            case 'datadog':
+                foreach ($tags as $tagKey => $tagValue) {
+                    $data[] = isset($tagValue) ? $tagKey . '=' . $tagValue : $tagKey;
+                }
+                return '|#' . implode(',', $data);
+                break;
+
+            default:
+                foreach ($tags as $tagKey => $tagValue) {
+                    $data[] = isset($tagValue) ? $tagKey . ':' . $tagValue : $tagKey;
+                }                
+                return '|#' . implode(',', $data);
+                break;
         }
-        return '|#' . implode(',', $data);
+
     }
 
 
@@ -408,7 +463,23 @@ class Client
             $messages = array();
             $prefix = $this->namespace ? $this->namespace . '.' : '';
             foreach ($data as $key => $value) {
-                $messages[] = $prefix . $key . ':' . $value . $tagsData;
+                switch ($this->tagFormat) {
+                    'influxdb':
+                    'telegraf':
+                        // foo.bar.test2,tag1=val1:+1|g
+                        $messages[] = $prefix . $key . $tagsData . ':' . $value;
+                        break;
+                    'signalfx':
+                        $pieces = explode('.', $key, 2);
+                        $messages[] = $prefix . $pieces[0] . (isset($pieces[1]) ? '.' . $tagsData . $pieces[1] : $tagsData) . ':' . $value;
+                        break;
+                    'graphite':
+                    'datadog':
+                    default:
+                        $messages[] = $prefix . $key . ':' . $value . $tagsData;
+                        break;
+                }
+
             }
             $this->message = implode("\n", $messages);
             @fwrite($socket, $this->message);

@@ -194,8 +194,10 @@ In your `.env` file, add the configuration:
 STATSD_HOST=127.0.0.1
 STATSD_PORT=8125
 STATSD_NAMESPACE=
+STATSD_TAG_FORMAT=
 ```
 
+Valid values for `STATSD_TAG_FORMAT` include: `graphite`, `influxdb`, `telegraf`, `datadog`, `signalfx`
 
 
 ## Testing

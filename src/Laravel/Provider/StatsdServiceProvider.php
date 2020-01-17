@@ -62,6 +62,10 @@ class StatsdServiceProvider extends ServiceProvider
                     $options['timeout'] = $config['statsd.timeout'];
                 }
 
+                if (isset($config['statsd.tagFormat'])) {
+                    $options['tagFormat'] = $config['statsd.tagFormat'];
+                }
+
                 if (isset($config['statsd.throwConnectionExceptions'])) {
                     $options['throwConnectionExceptions'] = (boolean) $config['statsd.throwConnectionExceptions'];
                 }

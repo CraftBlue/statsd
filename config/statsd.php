@@ -7,5 +7,7 @@ return [
 
 	'namespace' => env('STATSD_NAMESPACE', ''),
 
+        'tagFormat' => env('STATSD_TAG_FORMAT', null),
+
 	'throwConnectionExceptions' => true
 ];
