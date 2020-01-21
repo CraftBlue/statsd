@@ -168,7 +168,7 @@ class Client
         }
 
         if (isset($options['tagFormat'])) {
-            if (!in_array($options['tagFormat'], [self::VALID_TAG_FORMATS])) {
+            if (!in_array($options['tagFormat'], self::VALID_TAG_FORMATS)) {
                 throw new ConfigurationException($this, 'Invalid tag format specified. Must be one of: graphite, telegraf, influxdb, datadog, signalfx');
             }
             $this->tagFormat = $options['tagFormat'];
