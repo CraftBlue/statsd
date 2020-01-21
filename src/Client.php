@@ -164,7 +164,7 @@ class Client
         }
 
         if (isset($options['tags'])) {
-            $this->tags = $options['tags'];
+            $this->tags = (array) $options['tags'];
         }
 
         if (isset($options['tagFormat'])) {
@@ -307,10 +307,11 @@ class Client
     /**
      * Send multiple timing metrics at once
      * @param array $metrics key value map of metric name -> timing value
+     * @param array $tags A list of metric tags values
      * @return Client
      * @throws ConnectionException
      */
-    public function timings($metrics)
+    public function timings($metrics, $tags = array())
     {
         // add |ms to values
         $data = [];
@@ -318,7 +319,7 @@ class Client
             $data[$metric] = $timing.'|ms';
         }
 
-        return $this->send($data);
+        return $this->send($data, $tags);
     }
 
     /**
