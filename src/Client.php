@@ -464,17 +464,17 @@ class Client
             $prefix = $this->namespace ? $this->namespace . '.' : '';
             foreach ($data as $key => $value) {
                 switch ($this->tagFormat) {
-                    'influxdb':
-                    'telegraf':
+                    case 'influxdb':
+                    case 'telegraf':
                         // foo.bar.test2,tag1=val1:+1|g
                         $messages[] = $prefix . $key . $tagsData . ':' . $value;
                         break;
-                    'signalfx':
+                    case 'signalfx':
                         $pieces = explode('.', $key, 2);
                         $messages[] = $prefix . $pieces[0] . (isset($pieces[1]) ? '.' . $tagsData . $pieces[1] : $tagsData) . ':' . $value;
                         break;
-                    'graphite':
-                    'datadog':
+                    case 'graphite':
+                    case 'datadog':
                     default:
                         $messages[] = $prefix . $key . ':' . $value . $tagsData;
                         break;
